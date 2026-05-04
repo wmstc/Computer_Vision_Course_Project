@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>这能吃吗</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .mode-switch {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: #f0f2ff;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: scale(1.02);
+        }
+
+        .upload-area.dragover {
+            background: #e8eaff;
+            border-color: #764ba2;
+        }
+
+        .upload-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 16px;
+        }
+
+        #fileInput, #batchFileInput {
+            display: none;
+        }
+
+        .preview-container {
+            margin-top: 25px;
+            display: none;
+        }
+
+        .preview-container.active {
+            display: block;
+        }
+
+        #preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .camera-container {
+            margin-top: 25px;
+            display: none;
+        }
+
+        .camera-container.active {
+            display: block;
+        }
+
+        .camera-wrapper {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #cameraVideo {
+            width: 100%;
+            max-height: 350px;
+            display: block;
+        }
+
+        #cameraCanvas {
+            display: none;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-small {
+            width: auto;
+            padding: 10px 20px;
+            flex: 1;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+        }
+
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .result-item {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-item:first-child {
+            background: linear-gradient(135deg, #667eea40 0%, #764ba240 100%);
+            border: 2px solid #667eea;
+        }
+
+        .food-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .probability {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ffe6e6;
+            color: #d63031;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .camera-status {
+            text-align: center;
+            padding: 10px;
+            background: #f0f2ff;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #667eea;
+        }
+
+        .camera-status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .batch-section {
+            display: none;
+        }
+
+        .batch-section.active {
+            display: block;
+        }
+
+        .batch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .batch-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f8f9ff;
+            border: 2px solid #e0e0e0;
+        }
+
+        .batch-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .batch-item .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .batch-item .result-badge {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .optimize-option {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+
+        .optimize-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+        }
+
+        .optimize-option label {
+            color: #333;
+            font-size: 14px;
+        }
+
+        .batch-stats {
+            margin-top: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            border-radius: 10px;
+            display: none;
+        }
+
+        .batch-stats.active {
+            display: block;
+        }
+
+        .batch-progress {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .batch-progress.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍜 这能吃吗</h1>
+
+        <div class="mode-switch">
+            <button class="mode-btn active" id="uploadModeBtn" onclick="switchMode('upload')">
+                📁 单张识别
+            </button>
+            <button class="mode-btn" id="cameraModeBtn" onclick="switchMode('camera')">
+                📷 摄像头
+            </button>
+            <button class="mode-btn" id="batchModeBtn" onclick="switchMode('batch')">
+                📚 批量识别
+            </button>
+        </div>
+
+        <div id="uploadSection">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">
+                    点击或拖拽图片到这里<br>
+                    <small>支持 JPG, PNG 格式</small>
+                </div>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+
+            <div class="preview-container" id="previewContainer">
+                <img id="preview" alt="预览图片">
+            </div>
+
+            <div class="optimize-option" style="margin-top: 15px;">
+                <input type="checkbox" id="uploadOptimizeCheckbox">
+                <label for="uploadOptimizeCheckbox">🖼️ 优化图片（提升识别准确率，推荐开启）</label>
+            </div>
+
+            <div class="disease-section" style="margin-top: 15px; padding: 15px; background: #f8f9ff; border-radius: 10px;">
+                <div style="font-weight: bold; margin-bottom: 10px; color: #333;">🏥 选择常见病（可选）</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="disease" value="none" checked>
+                        <span style="margin-left: 5px;">无</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="disease" value="diabetes">
+                        <span style="margin-left: 5px;">糖尿病</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="disease" value="hypertension">
+                        <span style="margin-left: 5px;">高血压</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="disease" value="hyperlipidemia">
+                        <span style="margin-left: 5px;">高血脂</span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn" id="predictBtn" disabled>识别食物</button>
+        </div>
+
+        <div id="cameraSection" style="display: none;">
+            <div class="camera-container active">
+                <div class="camera-wrapper">
+                    <video id="cameraVideo" autoplay playsinline></video>
+                    <canvas id="cameraCanvas"></canvas>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn btn-success btn-small" id="startCameraBtn" onclick="startCamera()">
+                        开启摄像头
+                    </button>
+                    <button class="btn btn-danger btn-small" id="stopCameraBtn" onclick="stopCamera()" disabled>
+                        关闭摄像头
+                    </button>
+                    <button class="btn btn-small" id="captureBtn" onclick="captureAndPredict()" disabled>
+                        拍照识别
+                    </button>
+                </div>
+                <div class="camera-status" id="cameraStatus">
+                    点击"开启摄像头"开始实时识别
+                </div>
+            </div>
+        </div>
+
+        <div id="batchSection" class="batch-section">
+            <div class="upload-area" id="batchUploadArea">
+                <div class="upload-icon">📚</div>
+                <div class="upload-text">
+                    点击或拖拽多张图片到这里<br>
+                    <small>支持 JPG, PNG 格式，最多20张</small>
+                </div>
+                <input type="file" id="batchFileInput" accept="image/*" multiple>
+            </div>
+
+            <div class="optimize-option">
+                <input type="checkbox" id="optimizeCheckbox">
+                <label for="optimizeCheckbox">🖼️ 优化图片（提升识别准确率，推荐开启）</label>
+            </div>
+
+            <div class="batch-grid" id="batchGrid"></div>
+
+            <button class="btn" id="batchPredictBtn" onclick="batchPredict()" disabled style="display: none;">
+                批量识别
+            </button>
+
+            <div class="batch-progress" id="batchProgress">
+                <div>正在识别...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div id="progressText" style="margin-top: 10px;">0 / 0</div>
+            </div>
+
+            <div class="batch-stats" id="batchStats"></div>
+
+            <div class="results" id="batchResults"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>正在识别中...</div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results"></div>
+
+        <div class="diet-suggestion" id="dietSuggestion" style="margin-top: 30px; display: none;">
+            <div style="background: linear-gradient(135deg, #51cf6620 0%, #40c05720 100%); padding: 20px; border-radius: 15px; border: 2px solid #51cf66;">
+                <div style="font-weight: bold; font-size: 18px; margin-bottom: 15px; color: #2f9e44; display: flex; align-items: center;">
+                    <span style="margin-right: 10px;">🥗</span>
+                    <span>AI饮食建议</span>
+                </div>
+                <div id="diseaseTag" style="display: inline-block; background: #51cf66; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 15px;"></div>
+                <div id="suggestionContent" style="color: #333; line-height: 1.8; white-space: pre-wrap;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'upload';
+        let selectedFile = null;
+        let mediaStream = null;
+        let captureInterval = null;
+        let batchFiles = [];
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const preview = document.getElementById('preview');
+        const predictBtn = document.getElementById('predictBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        const uploadSection = document.getElementById('uploadSection');
+        const cameraSection = document.getElementById('cameraSection');
+        const batchSection = document.getElementById('batchSection');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const cameraCanvas = document.getElementById('cameraCanvas');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const stopCameraBtn = document.getElementById('stopCameraBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const batchUploadArea = document.getElementById('batchUploadArea');
+        const batchFileInput = document.getElementById('batchFileInput');
+        const batchGrid = document.getElementById('batchGrid');
+        const batchPredictBtn = document.getElementById('batchPredictBtn');
+        const optimizeCheckbox = document.getElementById('optimizeCheckbox');
+        const uploadOptimizeCheckbox = document.getElementById('uploadOptimizeCheckbox');
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('uploadModeBtn').classList.remove('active');
+            document.getElementById('cameraModeBtn').classList.remove('active');
+            document.getElementById('batchModeBtn').classList.remove('active');
+
+            uploadSection.style.display = 'none';
+            cameraSection.style.display = 'none';
+            batchSection.classList.remove('active');
+            results.classList.remove('active');
+
+            if (mode === 'upload') {
+                uploadSection.style.display = 'block';
+                document.getElementById('uploadModeBtn').classList.add('active');
+                stopCamera();
+            } else if (mode === 'camera') {
+                cameraSection.style.display = 'block';
+                document.getElementById('cameraModeBtn').classList.add('active');
+                cameraSection.querySelector('.camera-container').classList.add('active');
+            } else {
+                batchSection.classList.add('active');
+                document.getElementById('batchModeBtn').classList.add('active');
+                stopCamera();
+            }
+        }
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('请选择一个图片文件');
+                return;
+            }
+
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                previewContainer.classList.add('active');
+                predictBtn.disabled = false;
+                results.classList.remove('active');
+                error.classList.remove('active');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        predictBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            loading.classList.add('active');
+            predictBtn.disabled = true;
+            error.classList.remove('active');
+            results.classList.remove('active');
+
+            try {
+                const base64 = await fileToBase64(selectedFile);
+                const optimize = uploadOptimizeCheckbox ? uploadOptimizeCheckbox.checked : false;
+                const disease = document.querySelector('input[name="disease"]:checked').value;
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image: base64, optimize: optimize, disease: disease })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    displayResults(data.predictions);
+                    displayDietSuggestion(data.diet_suggestion, data.disease);
+                }
+            } catch (err) {
+                showError('识别失败: ' + err.message);
+            } finally {
+                loading.classList.remove('active');
+                predictBtn.disabled = false;
+            }
+        });
+
+        batchUploadArea.addEventListener('click', () => batchFileInput.click());
+
+        batchUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            batchUploadArea.classList.add('dragover');
+        });
+
+        batchUploadArea.addEventListener('dragleave', () => {
+            batchUploadArea.classList.remove('dragover');
+        });
+
+        batchUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            batchUploadArea.classList.remove('dragover');
+            handleBatchFiles(e.dataTransfer.files);
+        });
+
+        batchFileInput.addEventListener('change', (e) => {
+            handleBatchFiles(e.target.files);
+        });
+
+        function handleBatchFiles(files) {
+            const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+
+            if (batchFiles.length + imageFiles.length > 20) {
+                showError('最多只能上传20张图片');
+                return;
+            }
+
+            imageFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const idx = batchFiles.length;
+                    batchFiles.push({ file, dataUrl: e.target.result });
+                    renderBatchItem(idx, e.target.result);
+                    updateBatchUI();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderBatchItem(idx, dataUrl) {
+            const item = document.createElement('div');
+            item.className = 'batch-item';
+            item.id = `batch-item-${idx}`;
+            item.innerHTML = `
+                <img src="${dataUrl}" alt="图片 ${idx + 1}">
+                <button class="remove-btn" onclick="removeBatchItem(${idx})">×</button>
+                <div class="result-badge" id="batch-result-${idx}">等待识别</div>
+            `;
+            batchGrid.appendChild(item);
+        }
+
+        function removeBatchItem(idx) {
+            batchFiles[idx] = null;
+            const item = document.getElementById(`batch-item-${idx}`);
+            if (item) {
+                item.remove();
+            }
+            updateBatchUI();
+        }
+
+        function updateBatchUI() {
+            const validCount = batchFiles.filter(f => f !== null).length;
+            batchPredictBtn.style.display = validCount > 0 ? 'inline-block' : 'none';
+            batchPredictBtn.disabled = validCount === 0;
+        }
+
+        async function batchPredict() {
+            const validFiles = batchFiles.filter(f => f !== null);
+
+            if (validFiles.length === 0) {
+                showError('请先添加图片');
+                return;
+            }
+
+            loading.classList.add('active');
+            batchPredictBtn.disabled = true;
+            error.classList.remove('active');
+            document.getElementById('batchResults').classList.remove('active');
+            results.classList.remove('active');
+
+            const progress = document.getElementById('batchProgress');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            progress.classList.add('active');
+
+            try {
+                const optimize = optimizeCheckbox.checked;
+                const images = validFiles.map(f => f.dataUrl);
+
+                const response = await fetch('/batch_predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ images, optimize })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    displayBatchResults(data.results, validFiles.length);
+                }
+
+                progress.classList.remove('active');
+            } catch (err) {
+                showError('批量识别失败: ' + err.message);
+                progress.classList.remove('active');
+            } finally {
+                loading.classList.remove('active');
+                batchPredictBtn.disabled = false;
+            }
+        }
+
+        function displayBatchResults(results, total) {
+            const statsEl = document.getElementById('batchStats');
+            const successCount = results.filter(r => r.success).length;
+            const failedCount = results.filter(r => !r.success).length;
+
+            statsEl.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 10px;">📊 识别统计</div>
+                <div>总计: ${total} 张 | 成功: ${successCount} | 失败: ${failedCount}</div>
+            `;
+            statsEl.classList.add('active');
+
+            results.forEach((result, idx) => {
+                const badge = document.getElementById(`batch-result-${result.index}`);
+                if (badge) {
+                    if (result.success) {
+                        const topPrediction = result.predictions[0];
+                        badge.textContent = `${topPrediction.chinese || topPrediction.class} (${topPrediction.probability}%)`;
+                        badge.style.background = 'rgba(81, 207, 102, 0.9)';
+                    } else {
+                        badge.textContent = '识别失败';
+                        badge.style.background = 'rgba(255, 107, 107, 0.9)';
+                    }
+                }
+            });
+
+            document.getElementById('batchResults').classList.add('active');
+        }
+
+        async function startCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1280 } }
+                });
+                cameraVideo.srcObject = mediaStream;
+                startCameraBtn.disabled = true;
+                stopCameraBtn.disabled = false;
+                captureBtn.disabled = false;
+                cameraStatus.textContent = '✅ 摄像头已开启，可以点击"拍照识别"';
+                cameraStatus.classList.add('active');
+            } catch (err) {
+                showError('无法访问摄像头: ' + err.message);
+            }
+        }
+
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            if (captureInterval) {
+                clearInterval(captureInterval);
+                captureInterval = null;
+            }
+            cameraVideo.srcObject = null;
+            startCameraBtn.disabled = false;
+            stopCameraBtn.disabled = true;
+            captureBtn.disabled = true;
+            cameraStatus.textContent = '摄像头已关闭';
+            cameraStatus.classList.remove('active');
+        }
+
+        async function captureAndPredict() {
+            if (!mediaStream) return;
+
+            const ctx = cameraCanvas.getContext('2d');
+            cameraCanvas.width = cameraVideo.videoWidth;
+            cameraCanvas.height = cameraVideo.videoHeight;
+            ctx.drawImage(cameraVideo, 0, 0);
+
+            const base64 = cameraCanvas.toDataURL('image/jpeg', 0.8);
+
+            loading.classList.add('active');
+            error.classList.remove('active');
+            results.classList.remove('active');
+
+            try {
+                const response = await fetch('/camera_predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image: base64 })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    displayResults(data.predictions);
+                }
+            } catch (err) {
+                showError('识别失败: ' + err.message);
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function displayResults(predictions) {
+            results.innerHTML = predictions.map((p, i) => `
+                <div class="result-item">
+                    <span class="food-name">${i + 1}. ${p.class}</span>
+                    <span class="probability">${p.probability}%</span>
+                </div>
+            `).join('');
+            results.classList.add('active');
+        }
+
+        function displayDietSuggestion(suggestion, disease) {
+            const dietSuggestion = document.getElementById('dietSuggestion');
+            const diseaseTag = document.getElementById('diseaseTag');
+            const suggestionContent = document.getElementById('suggestionContent');
+
+            if (suggestion && suggestion.trim()) {
+                diseaseTag.textContent = disease === '无' ? '普通饮食建议' : `针对${disease}患者`;
+                suggestionContent.textContent = suggestion;
+                dietSuggestion.style.display = 'block';
+            } else {
+                dietSuggestion.style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('active');
+        }
+    </script>
+</body>
+</html>
